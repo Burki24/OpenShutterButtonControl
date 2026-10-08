@@ -330,8 +330,8 @@ function configureModule(
 }
 
 $GLOBALS['OSBC_VARIABLES'] = [
-    10 => ['type' => VARIABLETYPE_BOOLEAN, 'value' => false, 'action' => false],
-    11 => ['type' => VARIABLETYPE_STRING, 'value' => 'released', 'action' => false],
+    10 => ['type' => VARIABLETYPE_BOOLEAN, 'value' => false, 'action' => false, 'name' => 'Taste'],
+    11 => ['type' => VARIABLETYPE_STRING, 'value' => 'released', 'action' => false, 'name' => 'Taste'],
     20 => ['type' => VARIABLETYPE_STRING, 'value' => 'STOP', 'action' => true],
     21 => ['type' => VARIABLETYPE_STRING, 'value' => 'STOP', 'action' => true],
     22 => ['type' => VARIABLETYPE_STRING, 'value' => 'STOP', 'action' => false],
@@ -462,6 +462,21 @@ $module->ApplyChanges();
 assertTrue(!isset($module->messages[10][VM_UPDATE]), 'Old button registration was not removed.');
 assertTrue(isset($module->messages[11][VM_UPDATE]), 'New button registration was not created.');
 assertSameValue([11, 20, 30], getReferenceIDs($module), 'References were not updated after changing the button.');
+$GLOBALS['OSBC_REQUEST_ACTIONS'] = [];
+$GLOBALS['OSBC_VARIABLES'][10]['value'] = true;
+$module->MessageSink(time(), 10, VM_UPDATE, []);
+assertSameValue([], $GLOBALS['OSBC_REQUEST_ACTIONS'], 'An equally named old button ID must not control the module.');
+$GLOBALS['OSBC_VARIABLES'][11]['name'] = 'Umbenannte Taste';
+$GLOBALS['OSBC_VARIABLES'][11]['value'] = 'pressed';
+$module->MessageSink(time(), 11, VM_UPDATE, []);
+$module->attributes['PressStart'] = microtime(true) - 0.1;
+$GLOBALS['OSBC_VARIABLES'][11]['value'] = 'released';
+$module->MessageSink(time(), 11, VM_UPDATE, []);
+assertSameValue(
+    [['id' => 30, 'value' => 0]],
+    $GLOBALS['OSBC_REQUEST_ACTIONS'],
+    'Renaming the selected button must not change its ID-based action target.'
+);
 
 // Reconfiguration during movement must STOP the old movement variable exactly once.
 $GLOBALS['OSBC_REQUEST_ACTIONS'] = [];
