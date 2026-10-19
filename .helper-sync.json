@@ -6,6 +6,9 @@
     "helpers": {
         "VariablePresentationHelper": {
             "target": "libs/helper/VariablePresentationHelper.php"
+        },
+        "DebugFlowHelper": {
+            "target": "libs/helper/DebugFlowHelper.php"
         }
     }
 }

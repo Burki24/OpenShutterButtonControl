@@ -29,6 +29,7 @@ $commands = [
     ['Verify vendored helper integrity', 'python3 tests/helper_integrity.py'],
     ['Validate repository structure', 'python3 tests/validate_structure.py'],
     ['Run module regression tests', 'php tests/module.php'],
+    ['Check German debug flows and safe STOP', 'php tests/debug-output.php'],
     ['Test library metadata updater', 'python3 tests/test_update_library_metadata.py'],
 ];
 

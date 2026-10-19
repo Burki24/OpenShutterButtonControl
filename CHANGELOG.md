@@ -1,3 +1,9 @@
+# Unveröffentlicht
+
+## Neu
+
+- Einheitliche deutsche Debug-Ausgaben nach dem OHA-Vorbild erklären Funktionsabläufe, Quellwerte, Statusausgaben und Steueraufträge mit Vorgangskennung, Quellstelle und Ergebnis.
+
 # Changelog
 
 Alle wesentlichen Änderungen an der Library **OpenShutterButtonControl** werden in dieser Datei dokumentiert.

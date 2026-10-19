@@ -2,12 +2,16 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/../libs/helper/DebugFlowHelper.php';
+
 require_once __DIR__ . '/../libs/helper/VariablePresentationHelper.php';
 
 use Burki24\SymconModuleHelper\VariablePresentationHelper;
 
 class OpenShutterButtonControl extends IPSModuleStrict
 {
+    use \Burki24\SymconModuleHelper\DebugFlowHelper;
+
     use VariablePresentationHelper;
 
     private const DIRECTION_UP = 0;
@@ -22,30 +26,41 @@ class OpenShutterButtonControl extends IPSModuleStrict
      */
     public function Create(): void
     {
-        parent::Create();
+        $debugFlowResult = null;
+        $debugFlowFailed = false;
+        $this->DebugFlowStart(__FUNCTION__, __LINE__);
+        try {
+            parent::Create();
 
-        $this->RegisterPropertyInteger('ButtonID', 0);
-        $this->RegisterPropertyInteger('MoveID', 0);
-        $this->RegisterPropertyInteger('PositionID', 0);
-        $this->RegisterPropertyInteger('Direction', self::DIRECTION_UP);
-        $this->RegisterPropertyInteger('ShortPressTime', 1000);
-        $this->RegisterPropertyInteger('PositionMode', self::POSITION_MODE_ZERO_OPEN);
+            $this->RegisterPropertyInteger('ButtonID', 0);
+            $this->RegisterPropertyInteger('MoveID', 0);
+            $this->RegisterPropertyInteger('PositionID', 0);
+            $this->RegisterPropertyInteger('Direction', self::DIRECTION_UP);
+            $this->RegisterPropertyInteger('ShortPressTime', 1000);
+            $this->RegisterPropertyInteger('PositionMode', self::POSITION_MODE_ZERO_OPEN);
 
-        $this->RegisterAttributeFloat('PressStart', 0.0);
-        $this->RegisterAttributeBoolean('ButtonPressed', false);
-        $this->RegisterAttributeBoolean('LongPressActive', false);
-        $this->RegisterAttributeInteger('ActiveMoveID', 0);
-        $this->RegisterAttributeInteger('RegisteredButtonID', 0);
-        $this->RegisterAttributeString('RegisteredReferences', '[]');
+            $this->RegisterAttributeFloat('PressStart', 0.0);
+            $this->RegisterAttributeBoolean('ButtonPressed', false);
+            $this->RegisterAttributeBoolean('LongPressActive', false);
+            $this->RegisterAttributeInteger('ActiveMoveID', 0);
+            $this->RegisterAttributeInteger('RegisteredButtonID', 0);
+            $this->RegisterAttributeString('RegisteredReferences', '[]');
 
-        $this->RegisterStatusVariables();
-        $this->RegisterMessage(0, IPS_KERNELSTARTED);
+            $this->RegisterStatusVariables();
+            $this->RegisterMessage(0, IPS_KERNELSTARTED);
 
-        $this->RegisterTimer(
-            'LongPress',
-            0,
-            'IPS_RequestAction($_IPS[\'TARGET\'], \'HandleLongPress\', 0);'
-        );
+            $this->RegisterTimer(
+                'LongPress',
+                0,
+                'IPS_RequestAction($_IPS[\'TARGET\'], \'HandleLongPress\', 0);'
+            );
+        } catch (\Throwable $debugFlowException) {
+            $debugFlowFailed = true;
+            $this->DebugFlowException(__FUNCTION__, __LINE__, $debugFlowException);
+            throw $debugFlowException;
+        } finally {
+            $this->DebugFlowEnd(__FUNCTION__, __LINE__, $debugFlowResult, $debugFlowFailed, true);
+        }
     }
 
     /**
@@ -53,16 +68,27 @@ class OpenShutterButtonControl extends IPSModuleStrict
      */
     public function ApplyChanges(): void
     {
-        parent::ApplyChanges();
+        $debugFlowResult = null;
+        $debugFlowFailed = false;
+        $this->DebugFlowStart(__FUNCTION__, __LINE__);
+        try {
+            parent::ApplyChanges();
 
-        if (IPS_GetKernelRunlevel() !== KR_READY) {
-            $this->SetTimerInterval('LongPress', 0);
-            $this->UnregisterConfiguredButton();
-            $this->SetStatus(IS_INACTIVE);
-            return;
+            if (IPS_GetKernelRunlevel() !== KR_READY) {
+                $this->SetTimerInterval('LongPress', 0);
+                $this->UnregisterConfiguredButton();
+                $this->SetStatus(IS_INACTIVE);
+                return;
+            }
+
+            $this->Initialize();
+        } catch (\Throwable $debugFlowException) {
+            $debugFlowFailed = true;
+            $this->DebugFlowException(__FUNCTION__, __LINE__, $debugFlowException);
+            throw $debugFlowException;
+        } finally {
+            $this->DebugFlowEnd(__FUNCTION__, __LINE__, $debugFlowResult, $debugFlowFailed, true);
         }
-
-        $this->Initialize();
     }
 
     /**
@@ -70,20 +96,31 @@ class OpenShutterButtonControl extends IPSModuleStrict
      */
     public function Destroy(): void
     {
-        $this->SetTimerInterval('LongPress', 0);
+        $debugFlowResult = null;
+        $debugFlowFailed = false;
+        $this->DebugFlowStart(__FUNCTION__, __LINE__);
+        try {
+            $this->SetTimerInterval('LongPress', 0);
 
-        if (IPS_GetKernelRunlevel() === KR_READY) {
-            $this->StopActiveMovement();
-        } else {
-            $this->WriteAttributeInteger('ActiveMoveID', 0);
+            if (IPS_GetKernelRunlevel() === KR_READY) {
+                $this->StopActiveMovement();
+            } else {
+                $this->WriteAttributeInteger('ActiveMoveID', 0);
+            }
+
+            $this->ResetPressState(false);
+            $this->UnregisterConfiguredButton();
+            $this->ClearReferences();
+            $this->UnregisterMessage(0, IPS_KERNELSTARTED);
+
+            parent::Destroy();
+        } catch (\Throwable $debugFlowException) {
+            $debugFlowFailed = true;
+            $this->DebugFlowException(__FUNCTION__, __LINE__, $debugFlowException);
+            throw $debugFlowException;
+        } finally {
+            $this->DebugFlowEnd(__FUNCTION__, __LINE__, $debugFlowResult, $debugFlowFailed, true);
         }
-
-        $this->ResetPressState(false);
-        $this->UnregisterConfiguredButton();
-        $this->ClearReferences();
-        $this->UnregisterMessage(0, IPS_KERNELSTARTED);
-
-        parent::Destroy();
     }
 
     /**
@@ -96,17 +133,28 @@ class OpenShutterButtonControl extends IPSModuleStrict
      */
     public function MessageSink(int $TimeStamp, int $SenderID, int $Message, array $Data): void
     {
-        if ($SenderID === 0 && $Message === IPS_KERNELSTARTED) {
-            $this->Initialize();
-            return;
-        }
+        $debugFlowResult = null;
+        $debugFlowFailed = false;
+        $this->DebugFlowStart(__FUNCTION__, __LINE__, ['Quelle' => $SenderID, 'Nachricht' => $Message]);
+        try {
+            if ($SenderID === 0 && $Message === IPS_KERNELSTARTED) {
+                $this->Initialize();
+                return;
+            }
 
-        $registeredButtonID = $this->ReadAttributeInteger('RegisteredButtonID');
-        if ($Message !== VM_UPDATE || $SenderID <= 0 || $SenderID !== $registeredButtonID) {
-            return;
-        }
+            $registeredButtonID = $this->ReadAttributeInteger('RegisteredButtonID');
+            if ($Message !== VM_UPDATE || $SenderID <= 0 || $SenderID !== $registeredButtonID) {
+                return;
+            }
 
-        $this->HandleButton();
+            $this->HandleButton();
+        } catch (\Throwable $debugFlowException) {
+            $debugFlowFailed = true;
+            $this->DebugFlowException(__FUNCTION__, __LINE__, $debugFlowException);
+            throw $debugFlowException;
+        } finally {
+            $this->DebugFlowEnd(__FUNCTION__, __LINE__, $debugFlowResult, $debugFlowFailed, true);
+        }
     }
 
     /**
@@ -114,11 +162,22 @@ class OpenShutterButtonControl extends IPSModuleStrict
      */
     public function RequestAction(string $Ident, mixed $Value): void
     {
-        if ($Ident !== 'HandleLongPress') {
-            throw new InvalidArgumentException('Invalid Ident: ' . $Ident);
-        }
+        $debugFlowResult = null;
+        $debugFlowFailed = false;
+        $this->DebugFlowStart(__FUNCTION__, __LINE__, ['Aktion' => $Ident]);
+        try {
+            if ($Ident !== 'HandleLongPress') {
+                throw new InvalidArgumentException('Invalid Ident: ' . $Ident);
+            }
 
-        $this->HandleLongPress();
+            $this->HandleLongPress();
+        } catch (\Throwable $debugFlowException) {
+            $debugFlowFailed = true;
+            $this->DebugFlowException(__FUNCTION__, __LINE__, $debugFlowException);
+            throw $debugFlowException;
+        } finally {
+            $this->DebugFlowEnd(__FUNCTION__, __LINE__, $debugFlowResult, $debugFlowFailed, true);
+        }
     }
 
     /**
@@ -126,16 +185,28 @@ class OpenShutterButtonControl extends IPSModuleStrict
      */
     private function Initialize(): void
     {
-        if (IPS_GetKernelRunlevel() !== KR_READY) {
-            return;
+        $debugFlowResult = null;
+        $debugFlowFailed = false;
+        $this->DebugFlowStart(__FUNCTION__, __LINE__);
+        try {
+            if (IPS_GetKernelRunlevel() !== KR_READY) {
+                return;
+            }
+
+            $this->ResetPressState(true);
+            $this->UpdateReferences();
+
+            $status = $this->DetermineConfigurationStatus();
+            $this->UpdateButtonRegistration($status === IS_ACTIVE);
+            $this->DebugFlowEvent(__FUNCTION__, __LINE__, $status === IS_ACTIVE ? 'AKTION' : 'FEHLER', $status === IS_ACTIVE ? 'Tastersteuerung betriebsbereit.' : 'Tastersteuerung wegen ungültiger Konfiguration gesperrt; Statuscode benennt die betroffene Einstellung.', ['Status' => $status]);
+            $this->SetStatus($status);
+        } catch (\Throwable $debugFlowException) {
+            $debugFlowFailed = true;
+            $this->DebugFlowException(__FUNCTION__, __LINE__, $debugFlowException);
+            throw $debugFlowException;
+        } finally {
+            $this->DebugFlowEnd(__FUNCTION__, __LINE__, $debugFlowResult, $debugFlowFailed, true);
         }
-
-        $this->ResetPressState(true);
-        $this->UpdateReferences();
-
-        $status = $this->DetermineConfigurationStatus();
-        $this->UpdateButtonRegistration($status === IS_ACTIVE);
-        $this->SetStatus($status);
     }
 
     /**
@@ -143,30 +214,42 @@ class OpenShutterButtonControl extends IPSModuleStrict
      */
     private function HandleButton(): void
     {
-        $status = $this->DetermineConfigurationStatus();
-        if ($status !== IS_ACTIVE) {
-            $this->ResetPressState(true);
-            $this->SetStatus($status);
-            return;
+        $debugFlowResult = null;
+        $debugFlowFailed = false;
+        $this->DebugFlowStart(__FUNCTION__, __LINE__);
+        try {
+            $status = $this->DetermineConfigurationStatus();
+            if ($status !== IS_ACTIVE) {
+                $this->ResetPressState(true);
+                $this->DebugFlowEvent(__FUNCTION__, __LINE__, $status === IS_ACTIVE ? 'AKTION' : 'FEHLER', $status === IS_ACTIVE ? 'Tastersteuerung betriebsbereit.' : 'Tastersteuerung wegen ungültiger Konfiguration gesperrt; Statuscode benennt die betroffene Einstellung.', ['Status' => $status]);
+                $this->SetStatus($status);
+                return;
+            }
+
+            $buttonID = $this->ReadPropertyInteger('ButtonID');
+            $rawValue = $this->DebugFlowReadValue($buttonID, __FUNCTION__, __LINE__);
+            $pressed = $this->MapButtonState($rawValue);
+
+            $this->DebugFlowEvent(__FUNCTION__, __LINE__, 'EMPFANG', 'Tasterwert wird ausgewertet.', ['Variable' => $buttonID, 'Wert' => $rawValue]);
+
+            if ($pressed === null) {
+                $this->DebugFlowEvent(__FUNCTION__, __LINE__, 'FEHLER', 'Tasterwert ist weder als gedrückt noch als losgelassen erkennbar; keine Bewegung ausgelöst.', ['Variable' => $buttonID, 'Wert' => $rawValue]);
+                return;
+            }
+
+            if ($pressed) {
+                $this->HandleButtonPressed();
+                return;
+            }
+
+            $this->HandleButtonReleased();
+        } catch (\Throwable $debugFlowException) {
+            $debugFlowFailed = true;
+            $this->DebugFlowException(__FUNCTION__, __LINE__, $debugFlowException);
+            throw $debugFlowException;
+        } finally {
+            $this->DebugFlowEnd(__FUNCTION__, __LINE__, $debugFlowResult, $debugFlowFailed, true);
         }
-
-        $buttonID = $this->ReadPropertyInteger('ButtonID');
-        $rawValue = GetValue($buttonID);
-        $pressed = $this->MapButtonState($rawValue);
-
-        $this->SendDebug('ButtonRaw', json_encode($rawValue, JSON_UNESCAPED_UNICODE), 0);
-
-        if ($pressed === null) {
-            $this->SendDebug('Button', 'Unsupported button value: ' . json_encode($rawValue, JSON_UNESCAPED_UNICODE), 0);
-            return;
-        }
-
-        if ($pressed) {
-            $this->HandleButtonPressed();
-            return;
-        }
-
-        $this->HandleButtonReleased();
     }
 
     /**
@@ -183,7 +266,7 @@ class OpenShutterButtonControl extends IPSModuleStrict
         $this->WriteAttributeFloat('PressStart', microtime(true));
         $this->SetTimerInterval('LongPress', $this->ReadPropertyInteger('ShortPressTime'));
 
-        $this->SendDebug('Button', 'Pressed', 0);
+        $this->DebugFlowEvent(__FUNCTION__, __LINE__, 'AKTION', 'Taster gedrückt; Zeitmessung und Langdruck-Timer gestartet.');
     }
 
     /**
@@ -201,17 +284,17 @@ class OpenShutterButtonControl extends IPSModuleStrict
         $pressStart = $this->ReadAttributeFloat('PressStart');
         $duration = max(0, (int) round((microtime(true) - $pressStart) * 1000));
         $this->WriteAttributeFloat('PressStart', 0.0);
-        $this->SetValue('last_duration_ms', $duration);
+        $this->DebugFlowWriteValue('last_duration_ms', $duration, __FUNCTION__, __LINE__);
 
         if ($this->ReadAttributeBoolean('LongPressActive')) {
             $this->WriteAttributeBoolean('LongPressActive', false);
-            $this->SetValue('last_action', 'long_press');
+            $this->DebugFlowWriteValue('last_action', 'long_press', __FUNCTION__, __LINE__);
             $this->StopActiveMovement();
             return;
         }
 
         if ($duration < $this->ReadPropertyInteger('ShortPressTime')) {
-            $this->SetValue('last_action', 'short_press');
+            $this->DebugFlowWriteValue('last_action', 'short_press', __FUNCTION__, __LINE__);
             $this->HandleShortPress();
             return;
         }
@@ -222,7 +305,7 @@ class OpenShutterButtonControl extends IPSModuleStrict
         $this->HandleLongPress();
         $this->WriteAttributeBoolean('ButtonPressed', false);
         $this->WriteAttributeBoolean('LongPressActive', false);
-        $this->SetValue('last_action', 'long_press');
+        $this->DebugFlowWriteValue('last_action', 'long_press', __FUNCTION__, __LINE__);
         $this->StopActiveMovement();
     }
 
@@ -231,22 +314,34 @@ class OpenShutterButtonControl extends IPSModuleStrict
      */
     private function HandleLongPress(): void
     {
-        $this->SetTimerInterval('LongPress', 0);
+        $debugFlowResult = null;
+        $debugFlowFailed = false;
+        $this->DebugFlowStart(__FUNCTION__, __LINE__);
+        try {
+            $this->SetTimerInterval('LongPress', 0);
 
-        if (!$this->ReadAttributeBoolean('ButtonPressed') || $this->ReadAttributeBoolean('LongPressActive')) {
-            return;
+            if (!$this->ReadAttributeBoolean('ButtonPressed') || $this->ReadAttributeBoolean('LongPressActive')) {
+                return;
+            }
+
+            $status = $this->DetermineConfigurationStatus();
+            if ($status !== IS_ACTIVE) {
+                $this->ResetPressState(true);
+                $this->DebugFlowEvent(__FUNCTION__, __LINE__, $status === IS_ACTIVE ? 'AKTION' : 'FEHLER', $status === IS_ACTIVE ? 'Tastersteuerung betriebsbereit.' : 'Tastersteuerung wegen ungültiger Konfiguration gesperrt; Statuscode benennt die betroffene Einstellung.', ['Status' => $status]);
+                $this->SetStatus($status);
+                return;
+            }
+
+            $this->WriteAttributeBoolean('LongPressActive', true);
+            $this->DebugFlowWriteValue('last_action', 'long_press', __FUNCTION__, __LINE__);
+            $this->MoveShutter();
+        } catch (\Throwable $debugFlowException) {
+            $debugFlowFailed = true;
+            $this->DebugFlowException(__FUNCTION__, __LINE__, $debugFlowException);
+            throw $debugFlowException;
+        } finally {
+            $this->DebugFlowEnd(__FUNCTION__, __LINE__, $debugFlowResult, $debugFlowFailed, true);
         }
-
-        $status = $this->DetermineConfigurationStatus();
-        if ($status !== IS_ACTIVE) {
-            $this->ResetPressState(true);
-            $this->SetStatus($status);
-            return;
-        }
-
-        $this->WriteAttributeBoolean('LongPressActive', true);
-        $this->SetValue('last_action', 'long_press');
-        $this->MoveShutter();
     }
 
     /**
@@ -254,20 +349,31 @@ class OpenShutterButtonControl extends IPSModuleStrict
      */
     private function HandleShortPress(): void
     {
-        $positionID = $this->ReadPropertyInteger('PositionID');
-        $direction = $this->ReadPropertyInteger('Direction');
-        $positionMode = $this->ReadPropertyInteger('PositionMode');
+        $debugFlowResult = null;
+        $debugFlowFailed = false;
+        $this->DebugFlowStart(__FUNCTION__, __LINE__);
+        try {
+            $positionID = $this->ReadPropertyInteger('PositionID');
+            $direction = $this->ReadPropertyInteger('Direction');
+            $positionMode = $this->ReadPropertyInteger('PositionMode');
 
-        $openPosition = $positionMode === self::POSITION_MODE_HUNDRED_OPEN ? 100 : 0;
-        $closedPosition = $positionMode === self::POSITION_MODE_HUNDRED_OPEN ? 0 : 100;
-        $targetPosition = $direction === self::DIRECTION_UP ? $openPosition : $closedPosition;
-        $positionVariable = IPS_GetVariable($positionID);
-        $targetValue = $positionVariable['VariableType'] === VARIABLETYPE_FLOAT
-            ? (float) $targetPosition
-            : $targetPosition;
+            $openPosition = $positionMode === self::POSITION_MODE_HUNDRED_OPEN ? 100 : 0;
+            $closedPosition = $positionMode === self::POSITION_MODE_HUNDRED_OPEN ? 0 : 100;
+            $targetPosition = $direction === self::DIRECTION_UP ? $openPosition : $closedPosition;
+            $positionVariable = IPS_GetVariable($positionID);
+            $targetValue = $positionVariable['VariableType'] === VARIABLETYPE_FLOAT
+                ? (float) $targetPosition
+                : $targetPosition;
 
-        $this->SendDebug('Shutter', 'Set position to ' . $targetPosition, 0);
-        RequestAction($positionID, $targetValue);
+            $this->DebugFlowEvent(__FUNCTION__, __LINE__, 'AKTION', 'Kurzer Tastendruck: konfigurierte Endposition wird angefordert.', ['Variable' => $positionID, 'PositionProzent' => $targetPosition]);
+            $this->DebugFlowRequestAction($positionID, $targetValue, __FUNCTION__, __LINE__);
+        } catch (\Throwable $debugFlowException) {
+            $debugFlowFailed = true;
+            $this->DebugFlowException(__FUNCTION__, __LINE__, $debugFlowException);
+            throw $debugFlowException;
+        } finally {
+            $this->DebugFlowEnd(__FUNCTION__, __LINE__, $debugFlowResult, $debugFlowFailed, true);
+        }
     }
 
     /**
@@ -275,16 +381,27 @@ class OpenShutterButtonControl extends IPSModuleStrict
      */
     private function MoveShutter(): void
     {
-        $moveID = $this->ReadPropertyInteger('MoveID');
-        $direction = $this->ReadPropertyInteger('Direction');
-        $command = $direction === self::DIRECTION_UP ? 'OPEN' : 'CLOSE';
+        $debugFlowResult = null;
+        $debugFlowFailed = false;
+        $this->DebugFlowStart(__FUNCTION__, __LINE__);
+        try {
+            $moveID = $this->ReadPropertyInteger('MoveID');
+            $direction = $this->ReadPropertyInteger('Direction');
+            $command = $direction === self::DIRECTION_UP ? 'OPEN' : 'CLOSE';
 
-        $this->WriteAttributeInteger('ActiveMoveID', $moveID);
-        $this->SendDebug('Shutter', 'Move command: ' . $command, 0);
+            $this->WriteAttributeInteger('ActiveMoveID', $moveID);
+            $this->DebugFlowEvent(__FUNCTION__, __LINE__, 'AKTION', 'Langer Tastendruck: kontinuierliche Bewegung wird angefordert.', ['Variable' => $moveID, 'Befehl' => $command]);
 
-        if (!RequestAction($moveID, $command)) {
-            $this->WriteAttributeInteger('ActiveMoveID', 0);
-            $this->WriteAttributeBoolean('LongPressActive', false);
+            if (!$this->DebugFlowRequestAction($moveID, $command, __FUNCTION__, __LINE__)) {
+                $this->WriteAttributeInteger('ActiveMoveID', 0);
+                $this->WriteAttributeBoolean('LongPressActive', false);
+            }
+        } catch (\Throwable $debugFlowException) {
+            $debugFlowFailed = true;
+            $this->DebugFlowException(__FUNCTION__, __LINE__, $debugFlowException);
+            throw $debugFlowException;
+        } finally {
+            $this->DebugFlowEnd(__FUNCTION__, __LINE__, $debugFlowResult, $debugFlowFailed, true);
         }
     }
 
@@ -293,21 +410,32 @@ class OpenShutterButtonControl extends IPSModuleStrict
      */
     private function StopActiveMovement(): void
     {
-        $moveID = $this->ReadAttributeInteger('ActiveMoveID');
-        if ($moveID <= 0) {
-            return;
+        $debugFlowResult = null;
+        $debugFlowFailed = false;
+        $this->DebugFlowStart(__FUNCTION__, __LINE__);
+        try {
+            $moveID = $this->ReadAttributeInteger('ActiveMoveID');
+            if ($moveID <= 0) {
+                return;
+            }
+
+            // Clear first so repeated cleanup calls never send duplicate STOP commands.
+            $this->WriteAttributeInteger('ActiveMoveID', 0);
+
+            if (!IPS_VariableExists($moveID) || !HasAction($moveID)) {
+                $this->DebugFlowEvent(__FUNCTION__, __LINE__, 'FEHLER', 'STOP kann nicht gesendet werden: Bewegungsvariable oder ausführbare Aktion fehlt.', ['Variable' => $moveID]);
+                return;
+            }
+
+            $this->DebugFlowEvent(__FUNCTION__, __LINE__, 'AKTION', 'Bewegung auf der tatsächlich gestarteten Variable wird mit STOP beendet.', ['Variable' => $moveID]);
+            $this->DebugFlowRequestAction($moveID, 'STOP', __FUNCTION__, __LINE__);
+        } catch (\Throwable $debugFlowException) {
+            $debugFlowFailed = true;
+            $this->DebugFlowException(__FUNCTION__, __LINE__, $debugFlowException);
+            throw $debugFlowException;
+        } finally {
+            $this->DebugFlowEnd(__FUNCTION__, __LINE__, $debugFlowResult, $debugFlowFailed, true);
         }
-
-        // Clear first so repeated cleanup calls never send duplicate STOP commands.
-        $this->WriteAttributeInteger('ActiveMoveID', 0);
-
-        if (!IPS_VariableExists($moveID) || !HasAction($moveID)) {
-            $this->SendDebug('Shutter', 'Unable to send STOP: movement variable or action is missing.', 0);
-            return;
-        }
-
-        $this->SendDebug('Shutter', 'Move command: STOP', 0);
-        RequestAction($moveID, 'STOP');
     }
 
     /**
