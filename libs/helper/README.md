@@ -7,6 +7,6 @@ Die Dateien in diesem Verzeichnis stammen aus dem gemeinsamen Repository
 | --- | --- | --- |
 | `DebugFlowHelper.php` | 1.0.0 | `7acb9342e958a867d17ce53c96a69a176a4f28886875b64166372f15eddd11d8` |
 | `DebugHelper.php` | 1.0.2 | `3bc98238da59682b149d981e7641f1a1af8103047d05ce520dec0a2abcbe7d2b` |
-| `VariablePresentationHelper.php` | 2.0.0 | `ce620078e72bcbffed1adfdd02e8f64baf5f2b2e8e1531e3bb1ae7b32b390fb8` |
+| `VariablePresentationHelper.php` | 2.1.0 | `56f8b6c258db79b6f41e2f9930d88a37d719a599c3a2f317bc34b7f4746293fa` |
 
 Die Kopien werden bewusst mit der Library ausgeliefert; zur Laufzeit besteht keine externe Abhängigkeit.
